@@ -1,8 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from sqlmodel import SQLModel,create_engine,Field, Session, select
+from pydantic import BaseModel
+
 
 class Student(SQLModel, table=True):
     id: int  | None = Field(default=None, primary_key=True)
+    name: str
+    age: int
+    year: int
+
+class StudentResponse(BaseModel):
     name: str
     age: int
     year: int
@@ -42,14 +49,29 @@ def root():
 + Deleting a User
 """
 # Creating User
-@app.post("/createStudent")
-def create_user():
+@app.post("/createStudent", response_model=StudentResponse)
+def create_user(student: Student):
     with Session(engine) as session:
-        statement = Student(name="Jake", age="50", year="5")
-        session.add(statement)
-        session.commit()
+        try:
+            statement = Student(
+                name=student.name,
+                age=student.age,
+                year=student.year,
+            )
+        except:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error with Requester Information")
+        try:
+            session.add(statement)
+            session.commit()
+        except:
+            return HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail="Error with Sending Information to Database")
 
-        return statement
+        return StudentResponse(
+            name=student.name,
+            age=student.age,
+            year=student.year
+        )
+
 
 @app.get("/user")
 def get_all_user():
@@ -59,8 +81,9 @@ def get_all_user():
         return users
 
 @app.put("/recreateUser")
-def recreateUser():
-    ...
+def recreate_user():
+    pass
+
 
 @app.patch("/updateUser")
 def updateUser():
